@@ -1,4 +1,5 @@
 mod day1;
+mod day2;
 
 fn main() {
 
@@ -14,6 +15,7 @@ fn main() {
 
   match day {
     1 => println!("PART 1:{}\nPART 2:{}", day1::part1(), day1::part2()),
+    2 => println!("PART 1:{}\nPART 2:{}", day2::part1(), day2::part2()),
     _ => println!("No implementation available for day {}", day),
   }
 }
