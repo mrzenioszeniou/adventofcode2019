@@ -3,7 +3,7 @@ use std::{fs::File, io::Read};
 pub fn part1() -> isize {
   let mut computer = parse();
 
-  let output = computer.execute();
+  let output = computer.execute(vec![1]);
 
   let non_zero: Vec<isize> = output.into_iter().skip_while(|n| *n == 0).collect();
 
@@ -12,8 +12,14 @@ pub fn part1() -> isize {
   non_zero[0].to_owned()
 }
 
-pub fn part2() -> usize {
-  42
+pub fn part2() -> isize {
+  let mut computer = parse();
+
+  let output = computer.execute(vec![5]);
+
+  assert_eq!(output.len(), 1);
+
+  output[0].to_owned()
 }
 
 pub struct IntcodeComputer {
@@ -25,10 +31,7 @@ impl IntcodeComputer {
     Self { mem: mem.clone() }
   }
 
-  // First, you'll need to add two new instructions:
-  // Opcode 3 takes a single integer as input and saves it to the position given by its only parameter. For example, the instruction 3,50 would take an input value and store it at address 50.
-  // Opcode 4 outputs the value of its only parameter. For example, the instruction 4,50 would output the value at address 50.
-  pub fn execute(&mut self) -> Vec<isize> {
+  pub fn execute(&mut self, mut input: Vec<isize>) -> Vec<isize> {
     let mut i = 0;
 
     let mut ret = vec![];
@@ -53,13 +56,59 @@ impl IntcodeComputer {
         }
         3 => {
           let target = self.mem[i + 1] as usize;
-          self.mem[target] = 1;
+          self.mem[target] = input.pop().expect("No inputs available");
           i += 2;
         }
         4 => {
           let param1 = self.get_param(mode_1, self.mem[i + 1]);
           ret.push(param1);
           i += 2;
+        }
+        5 => {
+          let param1 = self.get_param(mode_1, self.mem[i + 1]);
+          if param1 != 0 {
+            let param2 = self.get_param(mode_2, self.mem[i + 2]);
+
+            assert!(
+              param2 >= 0,
+              "Encountered negative jump destination ({}) at index {}",
+              param2,
+              i + 2
+            );
+            i = param2 as usize;
+          } else {
+            i += 3;
+          }
+        }
+        6 => {
+          let param1 = self.get_param(mode_1, self.mem[i + 1]);
+          if param1 == 0 {
+            let param2 = self.get_param(mode_2, self.mem[i + 2]);
+
+            assert!(
+              param2 >= 0,
+              "Encountered negative jump destination ({}) at index {}",
+              param2,
+              i + 2
+            );
+            i = param2 as usize;
+          } else {
+            i += 3;
+          }
+        }
+        7 => {
+          let param1 = self.get_param(mode_1, self.mem[i + 1]);
+          let param2 = self.get_param(mode_2, self.mem[i + 2]);
+          let target = self.mem[i + 3] as usize;
+          self.mem[target] = (param1 < param2) as isize;
+          i += 4;
+        }
+        8 => {
+          let param1 = self.get_param(mode_1, self.mem[i + 1]);
+          let param2 = self.get_param(mode_2, self.mem[i + 2]);
+          let target = self.mem[i + 3] as usize;
+          self.mem[target] = (param1 == param2) as isize;
+          i += 4;
         }
         99 => break,
         _ => panic!(
@@ -113,19 +162,4 @@ fn parse() -> IntcodeComputer {
     .collect();
 
   IntcodeComputer::new(&memory)
-}
-
-#[cfg(test)]
-mod test {
-  use super::*;
-
-  #[test]
-  fn test_computer() {
-    let mut computer = IntcodeComputer::new(&vec![1002, 4, 3, 4, 33]);
-
-    let results = computer.execute();
-
-    assert!(results.is_empty());
-    assert_eq!(computer.mem, vec![1002, 4, 3, 4, 99]);
-  }
 }
