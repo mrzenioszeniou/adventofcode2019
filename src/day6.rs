@@ -13,9 +13,9 @@ pub fn part2() -> usize {
   let mut path_you = root.path_to("YOU").expect("No path to 'YOU' found");
   let mut path_san = root.path_to("SAN").expect("No path to 'SAN' found");
 
-  while path_you[0] == path_san[0] {
-    path_you.remove(0);
-    path_san.remove(0);
+  while path_you.last() == path_san.last() {
+    path_you.pop();
+    path_san.pop();
   }
 
   path_you.len() + path_san.len() - 2
@@ -60,7 +60,7 @@ impl Node {
     for moon in self.moons.iter() {
       match moon.path_to(to) {
         Some(mut path) => {
-          path.insert(0, self.name.as_str());
+          path.push(self.name.as_str());
           return Some(path);
         }
         _ => {}
