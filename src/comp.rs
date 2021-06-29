@@ -1,96 +1,107 @@
 #[derive(Clone)]
 pub struct IntcodeComputer {
   mem: Vec<isize>,
+  index: usize,
+  done: bool,
 }
 
 impl IntcodeComputer {
   pub fn new(mem: &Vec<isize>) -> Self {
-    Self { mem: mem.clone() }
+    Self {
+      index: 0,
+      mem: mem.clone(),
+      done: false,
+    }
   }
 
   pub fn execute(&mut self, mut input: Vec<isize>) -> Vec<isize> {
-    let mut i = 0;
-
     let mut ret = vec![];
 
     loop {
-      let (op, mode_1, mode_2, _) = self.parse_intcode(i);
+      let (op, mode_1, mode_2, _) = self.parse_intcode(self.index);
 
       match op {
         1 => {
-          let param1 = self.get_param(mode_1, self.mem[i + 1]);
-          let param2 = self.get_param(mode_2, self.mem[i + 2]);
-          let target = self.mem[i + 3] as usize;
+          let param1 = self.get_param(mode_1, self.mem[self.index + 1]);
+          let param2 = self.get_param(mode_2, self.mem[self.index + 2]);
+          let target = self.mem[self.index + 3] as usize;
           self.mem[target] = param1 + param2;
-          i += 4;
+          self.index += 4;
         }
         2 => {
-          let param1 = self.get_param(mode_1, self.mem[i + 1]);
-          let param2 = self.get_param(mode_2, self.mem[i + 2]);
-          let target = self.mem[i + 3] as usize;
+          let param1 = self.get_param(mode_1, self.mem[self.index + 1]);
+          let param2 = self.get_param(mode_2, self.mem[self.index + 2]);
+          let target = self.mem[self.index + 3] as usize;
           self.mem[target] = param1 * param2;
-          i += 4;
+          self.index += 4;
         }
         3 => {
-          let target = self.mem[i + 1] as usize;
-          self.mem[target] = input.pop().expect("No inputs available");
-          i += 2;
+          let target = self.mem[self.index + 1] as usize;
+          if input.is_empty() {
+            return ret;
+          } else {
+            self.mem[target] = input.pop().expect("No inputs available");
+            self.index += 2;
+          }
         }
         4 => {
-          let param1 = self.get_param(mode_1, self.mem[i + 1]);
+          let param1 = self.get_param(mode_1, self.mem[self.index + 1]);
           ret.push(param1);
-          i += 2;
+          self.index += 2;
         }
         5 => {
-          let param1 = self.get_param(mode_1, self.mem[i + 1]);
+          let param1 = self.get_param(mode_1, self.mem[self.index + 1]);
           if param1 != 0 {
-            let param2 = self.get_param(mode_2, self.mem[i + 2]);
+            let param2 = self.get_param(mode_2, self.mem[self.index + 2]);
 
             assert!(
               param2 >= 0,
               "Encountered negative jump destination ({}) at index {}",
               param2,
-              i + 2
+              self.index + 2
             );
-            i = param2 as usize;
+            self.index = param2 as usize;
           } else {
-            i += 3;
+            self.index += 3;
           }
         }
         6 => {
-          let param1 = self.get_param(mode_1, self.mem[i + 1]);
+          let param1 = self.get_param(mode_1, self.mem[self.index + 1]);
           if param1 == 0 {
-            let param2 = self.get_param(mode_2, self.mem[i + 2]);
+            let param2 = self.get_param(mode_2, self.mem[self.index + 2]);
 
             assert!(
               param2 >= 0,
               "Encountered negative jump destination ({}) at index {}",
               param2,
-              i + 2
+              self.index + 2
             );
-            i = param2 as usize;
+            self.index = param2 as usize;
           } else {
-            i += 3;
+            self.index += 3;
           }
         }
         7 => {
-          let param1 = self.get_param(mode_1, self.mem[i + 1]);
-          let param2 = self.get_param(mode_2, self.mem[i + 2]);
-          let target = self.mem[i + 3] as usize;
+          let param1 = self.get_param(mode_1, self.mem[self.index + 1]);
+          let param2 = self.get_param(mode_2, self.mem[self.index + 2]);
+          let target = self.mem[self.index + 3] as usize;
           self.mem[target] = (param1 < param2) as isize;
-          i += 4;
+          self.index += 4;
         }
         8 => {
-          let param1 = self.get_param(mode_1, self.mem[i + 1]);
-          let param2 = self.get_param(mode_2, self.mem[i + 2]);
-          let target = self.mem[i + 3] as usize;
+          let param1 = self.get_param(mode_1, self.mem[self.index + 1]);
+          let param2 = self.get_param(mode_2, self.mem[self.index + 2]);
+          let target = self.mem[self.index + 3] as usize;
           self.mem[target] = (param1 == param2) as isize;
-          i += 4;
+          self.index += 4;
         }
-        99 => break,
+        99 => {
+          self.done = true;
+          break;
+        }
         _ => panic!(
           "Illegal op code ({}) encountered at index {}",
-          self.mem[i], i
+          self.mem[self.index], self.index
         ),
       }
     }
@@ -121,5 +132,9 @@ impl IntcodeComputer {
     let mode_3 = value / 10000 % 10;
 
     (op_code, mode_1, mode_2, mode_3)
+  }
+
+  pub fn is_done(&self) -> bool {
+    self.done
   }
 }
