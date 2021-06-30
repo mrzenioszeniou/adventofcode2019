@@ -3,6 +3,7 @@ extern crate regex;
 mod comb;
 mod comp;
 mod day1;
+mod day10;
 mod day2;
 mod day3;
 mod day4;
@@ -32,6 +33,7 @@ fn main() {
     7 => println!("PART 1:{}\nPART 2:{}", day7::part1(), day7::part2()),
     8 => println!("PART 1:{}\nPART 2:{}", day8::part1(), day8::part2()),
     9 => println!("PART 1:{}\nPART 2:{}", day9::part1(), day9::part2()),
+    10 => println!("PART 1:{}\nPART 2:{}", day10::part1(), day10::part2()),
     _ => println!("No implementation available for day {}", day),
   }
 }
