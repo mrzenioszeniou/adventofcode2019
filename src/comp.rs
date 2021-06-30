@@ -1,16 +1,40 @@
+use std::{fs::File, io::Read};
+
+const MEMORY_SIZE: usize = 1536;
+const MEMORY_DEFAULT: isize = 0;
+
 #[derive(Clone)]
 pub struct IntcodeComputer {
   mem: Vec<isize>,
   index: usize,
   done: bool,
+  rel_base_offset: isize,
 }
 
 impl IntcodeComputer {
-  pub fn new(mem: &Vec<isize>) -> Self {
+  pub fn from_file(path: &str) -> Self {
+    let mut content = String::new();
+
+    File::open(path)
+      .unwrap()
+      .read_to_string(&mut content)
+      .unwrap();
+
+    let mut memory: Vec<isize> = content
+      .trim()
+      .split(",")
+      .map(|s| s.parse::<isize>().unwrap())
+      .collect();
+
+    while memory.len() < MEMORY_SIZE {
+      memory.push(MEMORY_DEFAULT);
+    }
+
     Self {
       index: 0,
-      mem: mem.clone(),
+      mem: memory,
       done: false,
+      rel_base_offset: 0,
     }
   }
 
@@ -18,29 +42,30 @@ impl IntcodeComputer {
     let mut ret = vec![];
 
     loop {
-      let (op, mode_1, mode_2, _) = self.parse_intcode(self.index);
+      let (op, mode_1, mode_2, mode_3) = self.parse_intcode(self.index);
 
       match op {
         1 => {
           let param1 = self.get_param(mode_1, self.mem[self.index + 1]);
           let param2 = self.get_param(mode_2, self.mem[self.index + 2]);
-          let target = self.mem[self.index + 3] as usize;
-          self.mem[target] = param1 + param2;
+          self.set_param(mode_3, self.mem[self.index + 3], param1 + param2);
           self.index += 4;
         }
         2 => {
           let param1 = self.get_param(mode_1, self.mem[self.index + 1]);
           let param2 = self.get_param(mode_2, self.mem[self.index + 2]);
-          let target = self.mem[self.index + 3] as usize;
-          self.mem[target] = param1 * param2;
+          self.set_param(mode_3, self.mem[self.index + 3], param1 * param2);
           self.index += 4;
         }
         3 => {
-          let target = self.mem[self.index + 1] as usize;
           if input.is_empty() {
             return ret;
           } else {
-            self.mem[target] = input.pop().expect("No inputs available");
+            self.set_param(
+              mode_1,
+              self.mem[self.index + 1],
+              input.pop().expect("No inputs available"),
+            );
             self.index += 2;
           }
         }
@@ -84,16 +109,23 @@ impl IntcodeComputer {
         7 => {
           let param1 = self.get_param(mode_1, self.mem[self.index + 1]);
           let param2 = self.get_param(mode_2, self.mem[self.index + 2]);
-          let target = self.mem[self.index + 3] as usize;
-          self.mem[target] = (param1 < param2) as isize;
+          self.set_param(mode_3, self.mem[self.index + 3], (param1 < param2) as isize);
           self.index += 4;
         }
         8 => {
           let param1 = self.get_param(mode_1, self.mem[self.index + 1]);
           let param2 = self.get_param(mode_2, self.mem[self.index + 2]);
-          let target = self.mem[self.index + 3] as usize;
-          self.mem[target] = (param1 == param2) as isize;
+          self.set_param(
+            mode_3,
+            self.mem[self.index + 3],
+            (param1 == param2) as isize,
+          );
           self.index += 4;
+        }
+        9 => {
+          let param1 = self.get_param(mode_1, self.mem[self.index + 1]);
+          self.rel_base_offset += param1;
+          self.index += 2;
         }
         99 => {
           self.done = true;
@@ -116,7 +148,19 @@ impl IntcodeComputer {
         self.mem[param as usize]
       }
       1 => param,
+      2 => {
+        let addr = param + self.rel_base_offset as isize;
+        self.mem[addr as usize]
+      }
       _ => panic!("Illegal parameter mode ({}) encountered", mode),
+    }
+  }
+
+  fn set_param(&mut self, mode: usize, addr: isize, value: isize) {
+    match mode {
+      0 => self.mem[addr as usize] = value,
+      2 => self.mem[(addr + self.rel_base_offset) as usize] = value,
+      _ => panic!("Immediate (1) mode is not permitted for output paramters"),
     }
   }
 
@@ -136,5 +180,76 @@ impl IntcodeComputer {
 
   pub fn is_done(&self) -> bool {
     self.done
+  }
+}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  #[test]
+  fn relative_base_offset_quine() {
+    let program = vec![
+      109, 1, 204, -1, 1001, 100, 1, 100, 1008, 100, 16, 101, 1006, 101, 0, 99,
+    ];
+
+    let mut input = program.clone();
+
+    while input.len() < MEMORY_SIZE {
+      input.push(MEMORY_DEFAULT);
+    }
+
+    let mut computer = IntcodeComputer {
+      index: 0,
+      mem: input,
+      done: false,
+      rel_base_offset: 0,
+    };
+
+    assert_eq!(computer.execute(vec![]), program);
+  }
+
+  #[test]
+  fn relative_base_offset_16_digit_num() {
+    let program = vec![1102, 34915192, 34915192, 7, 4, 7, 99, 0];
+
+    let mut input = program.clone();
+
+    while input.len() < MEMORY_SIZE {
+      input.push(MEMORY_DEFAULT);
+    }
+
+    let mut computer = IntcodeComputer {
+      index: 0,
+      mem: input,
+      done: false,
+      rel_base_offset: 0,
+    };
+
+    let output = computer.execute(vec![]);
+
+    assert_eq!(output.len(), 1);
+
+    assert!(output[0] >= 1_000_000_000_000_000 && output[0] <= 9_999_999_999_999_999);
+  }
+
+  #[test]
+  fn relative_base_offset_middle_num() {
+    let program = vec![104, 1125899906842624, 99];
+
+    let mut input = program.clone();
+
+    while input.len() < MEMORY_SIZE {
+      input.push(MEMORY_DEFAULT);
+    }
+
+    let mut computer = IntcodeComputer {
+      index: 0,
+      mem: input,
+      done: false,
+      rel_base_offset: 0,
+    };
+
+    assert_eq!(computer.execute(vec![]), vec![1125899906842624]);
   }
 }

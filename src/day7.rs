@@ -1,11 +1,10 @@
 use std::cmp::max;
-use std::{fs::File, io::Read};
 
 use crate::comb::permutations;
 use crate::comp::IntcodeComputer;
 
 pub fn part1() -> usize {
-  let base = parse();
+  let base = IntcodeComputer::from_file("res/day7.txt");
 
   let mut best = 0;
 
@@ -32,7 +31,7 @@ pub fn part1() -> usize {
 }
 
 pub fn part2() -> usize {
-  let base = parse();
+  let base = IntcodeComputer::from_file("res/day7.txt");
 
   let mut best = 0;
 
@@ -63,19 +62,13 @@ pub fn part2() -> usize {
   best as usize
 }
 
-fn parse() -> IntcodeComputer {
-  let mut content = String::new();
+#[cfg(test)]
+mod test {
+  use super::*;
 
-  File::open("res/day7.txt")
-    .unwrap()
-    .read_to_string(&mut content)
-    .unwrap();
-
-  let memory = content
-    .trim()
-    .split(",")
-    .map(|s| s.parse::<isize>().unwrap())
-    .collect();
-
-  IntcodeComputer::new(&memory)
+  #[test]
+  fn regression() {
+    assert_eq!(part1(), 34852);
+    assert_eq!(part2(), 44282086);
+  }
 }

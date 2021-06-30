@@ -1,8 +1,7 @@
 use crate::comp::IntcodeComputer;
-use std::{fs::File, io::Read};
 
 pub fn part1() -> isize {
-  let mut computer = parse();
+  let mut computer = IntcodeComputer::from_file("res/day5.txt");
 
   let output = computer.execute(vec![1]);
 
@@ -14,7 +13,7 @@ pub fn part1() -> isize {
 }
 
 pub fn part2() -> isize {
-  let mut computer = parse();
+  let mut computer = IntcodeComputer::from_file("res/day5.txt");
 
   let output = computer.execute(vec![5]);
 
@@ -23,19 +22,13 @@ pub fn part2() -> isize {
   output[0].to_owned()
 }
 
-fn parse() -> IntcodeComputer {
-  let mut content = String::new();
+#[cfg(test)]
+mod test {
+  use super::*;
 
-  File::open("res/day5.txt")
-    .unwrap()
-    .read_to_string(&mut content)
-    .unwrap();
-
-  let memory = content
-    .trim()
-    .split(",")
-    .map(|s| s.parse::<isize>().unwrap())
-    .collect();
-
-  IntcodeComputer::new(&memory)
+  #[test]
+  fn regression() {
+    assert_eq!(part1(), 4887191);
+    assert_eq!(part2(), 3419022);
+  }
 }
