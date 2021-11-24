@@ -1,4 +1,4 @@
-extern crate regex;
+#![feature(map_first_last)]
 
 mod comb;
 mod comp;
