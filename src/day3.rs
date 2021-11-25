@@ -53,12 +53,12 @@ pub fn part2() -> usize {
   best.expect("No solution found for part 2")
 }
 
-fn check(path_a: &Vec<Vec<usize>>, path_b: &Vec<Vec<usize>>, x: isize, y: isize) -> bool {
+fn check(path_a: &[Vec<usize>], path_b: &[Vec<usize>], x: isize, y: isize) -> bool {
   path_a[(SHIFT + x) as usize][(SHIFT + y) as usize] > 0
     && path_b[(SHIFT + x) as usize][(SHIFT + y) as usize] > 0
 }
 
-fn path(steps: &Vec<Step>) -> Vec<Vec<usize>> {
+fn path(steps: &[Step]) -> Vec<Vec<usize>> {
   let mut ret = vec![vec![0; MAP_SIZE]; MAP_SIZE];
 
   let mut curr = (MAP_SIZE / 2, MAP_SIZE / 2);
@@ -91,7 +91,7 @@ fn parse() -> Vec<Vec<Step>> {
 
   content
     .split_ascii_whitespace()
-    .map(|line| line.split(",").map(|s| Step::from(s)).collect())
+    .map(|line| line.split(',').map(Step::from).collect())
     .collect()
 }
 

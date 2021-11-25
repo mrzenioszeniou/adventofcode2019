@@ -30,7 +30,7 @@ mod test {
 
   #[test]
   fn permutations_test() {
-    let permutations: HashSet<Vec<usize>> = HashSet::from_iter(permutations(&vec![1, 2, 3]));
+    let permutations: HashSet<Vec<usize>> = HashSet::from_iter(permutations(&[1, 2, 3]));
     let expected: HashSet<Vec<usize>> = HashSet::from_iter([
       vec![3, 2, 1],
       vec![2, 3, 1],

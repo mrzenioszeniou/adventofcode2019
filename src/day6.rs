@@ -58,12 +58,9 @@ impl Node {
     }
 
     for moon in self.moons.iter() {
-      match moon.path_to(to) {
-        Some(mut path) => {
-          path.push(self.name.as_str());
-          return Some(path);
-        }
-        _ => {}
+      if let Some(mut path) = moon.path_to(to) {
+        path.push(self.name.as_str());
+        return Some(path);
       }
     }
 

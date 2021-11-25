@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 pub fn part1() -> usize {
   let mut cnt = 0;
 
@@ -58,13 +60,17 @@ impl Counter {
     let mut repeating = false;
 
     for i in 0..self.digits.len() - 1 {
-      if self.digits[i] == self.digits[i + 1] {
-        repeating = true;
-      } else if self.digits[i] > self.digits[i + 1] {
-        for j in i + 1..self.digits.len() {
-          self.digits[j] = self.digits[i];
+      match self.digits[i].cmp(&self.digits[i + 1]) {
+        Ordering::Equal => {
+          repeating = true;
         }
-        return false;
+        Ordering::Greater => {
+          for j in i + 1..self.digits.len() {
+            self.digits[j] = self.digits[i];
+          }
+          return false;
+        }
+        _ => {}
       }
     }
 
@@ -111,10 +117,10 @@ impl Counter {
 
   pub fn done(&self) -> bool {
     for i in 0..self.digits.len() {
-      if self.digits[i] > self.target[i] {
-        return true;
-      } else if self.digits[i] < self.target[i] {
-        return false;
+      match self.digits[i].cmp(&self.target[i]) {
+        Ordering::Greater => return true,
+        Ordering::Less => return false,
+        _ => {}
       }
     }
 

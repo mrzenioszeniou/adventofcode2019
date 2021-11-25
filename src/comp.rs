@@ -22,7 +22,7 @@ impl IntcodeComputer {
 
     let mut memory: Vec<isize> = content
       .trim()
-      .split(",")
+      .split(',')
       .map(|s| s.parse::<isize>().unwrap())
       .collect();
 
@@ -211,9 +211,7 @@ mod test {
 
   #[test]
   fn relative_base_offset_16_digit_num() {
-    let program = vec![1102, 34915192, 34915192, 7, 4, 7, 99, 0];
-
-    let mut input = program.clone();
+    let mut input = vec![1102, 34915192, 34915192, 7, 4, 7, 99, 0];
 
     while input.len() < MEMORY_SIZE {
       input.push(MEMORY_DEFAULT);
@@ -235,9 +233,7 @@ mod test {
 
   #[test]
   fn relative_base_offset_middle_num() {
-    let program = vec![104, 1125899906842624, 99];
-
-    let mut input = program.clone();
+    let mut input = vec![104, 1125899906842624, 99];
 
     while input.len() < MEMORY_SIZE {
       input.push(MEMORY_DEFAULT);

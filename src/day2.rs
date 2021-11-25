@@ -60,7 +60,7 @@ fn parse() -> Vec<usize> {
     .unwrap();
 
   content
-    .split(",")
+    .split(',')
     .map(|s| s.trim())
     .filter_map(|s| s.parse().ok())
     .collect()
