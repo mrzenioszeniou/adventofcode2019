@@ -1,3 +1,4 @@
+use crate::util::gcd;
 use std::{
   cmp::{max, min},
   collections::{BTreeMap, HashSet},
@@ -84,13 +85,6 @@ fn find_laser(asteroids: &HashSet<Point>) -> (usize, Point) {
   best
 }
 
-fn gcd(a: isize, b: isize) -> isize {
-  if b == 0 {
-    return a;
-  }
-
-  gcd(b, a % b)
-}
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq)]
 struct Point {
   i: usize,

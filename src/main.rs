@@ -5,6 +5,7 @@ mod comp;
 mod day1;
 mod day10;
 mod day11;
+mod day12;
 mod day2;
 mod day3;
 mod day4;
@@ -14,6 +15,7 @@ mod day7;
 mod day8;
 mod day9;
 mod dir;
+mod util;
 
 fn main() {
   let args: Vec<String> = std::env::args().collect();
@@ -37,6 +39,7 @@ fn main() {
     9 => println!("PART 1:{}\nPART 2:{}", day9::part1(), day9::part2()),
     10 => println!("PART 1:{}\nPART 2:{}", day10::part1(), day10::part2()),
     11 => println!("PART 1:{}\nPART 2:{}", day11::part1(), day11::part2()),
+    12 => println!("PART 1:{}\nPART 2:{}", day12::part1(), day12::part2()),
     _ => println!("No implementation available for day {}", day),
   }
 }
