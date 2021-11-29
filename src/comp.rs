@@ -1,6 +1,6 @@
 use std::{fs::File, io::Read};
 
-const MEMORY_SIZE: usize = 1536;
+const MEMORY_SIZE: usize = 4096;
 const MEMORY_DEFAULT: isize = 0;
 
 #[derive(Clone)]
