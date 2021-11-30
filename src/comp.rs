@@ -178,6 +178,10 @@ impl IntcodeComputer {
     (op_code, mode_1, mode_2, mode_3)
   }
 
+  pub fn override_mem(&mut self, index: usize, value: isize) {
+    self.mem[index] = value;
+  }
+
   pub fn is_done(&self) -> bool {
     self.done
   }
