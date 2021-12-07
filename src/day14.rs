@@ -1,26 +1,50 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 pub fn part1() -> usize {
     let mut factory = Factory::new(parse());
     factory.set_material("ORE", usize::MAX);
-    factory.produce("FUEL");
+    factory.produce("FUEL", 1);
     usize::MAX - factory.get_material("ORE")
 }
 
 pub fn part2() -> usize {
-    42
+    let mut init_factory = Factory::new(parse());
+    init_factory.set_material("ORE", 1_000_000_000_000);
+
+    let mut high = 1_000_000_000_000;
+    let mut low = 0;
+
+    while high != low + 1 {
+        let curr = (high + low) / 2;
+
+        let mut factory = init_factory.clone();
+        if factory.produce("FUEL", curr).is_some() {
+            low = curr;
+        } else {
+            high = curr;
+        }
+    }
+
+    low
 }
 
+#[derive(Clone)]
+struct Recipe {
+    input: HashMap<String, usize>,
+    output: usize,
+}
+
+#[derive(Clone)]
 struct Factory {
     recipes: HashMap<String, Recipe>,
-    materials: BTreeMap<String, usize>,
+    materials: HashMap<String, usize>,
 }
 
 impl Factory {
     fn new(recipes: HashMap<String, Recipe>) -> Self {
         Self {
             recipes,
-            materials: BTreeMap::new(),
+            materials: HashMap::new(),
         }
     }
 
@@ -35,27 +59,30 @@ impl Factory {
             .or_insert(amount);
     }
 
-    fn print_materials(&self) {
-        println!("Materials:");
-        for (material, amount) in self.materials.iter() {
-            if *amount != 0 {
-                println!("  {:>6}{:>10}", material, amount);
-            }
-        }
-    }
+    fn produce(&mut self, req_material: &str, req_amount: usize) -> Option<()> {
+        let Recipe { input, output } = self.recipes.get(req_material)?.clone();
 
-    fn produce(&mut self, material: &str) -> Option<()> {
-        let Recipe { input, output } = self.recipes.get(material)?.clone();
+        // Amount of times the recipe must be executed
+        let multiplier = req_amount.unstable_div_ceil(output);
 
         for (ingredient, amount) in input.into_iter() {
-            while self.get_material(&ingredient) < amount {
-                self.produce(&ingredient)?;
+            let missing_amount =
+                (amount * multiplier).saturating_sub(self.get_material(&ingredient));
+
+            if missing_amount > 0 {
+                self.produce(&ingredient, missing_amount)?;
             }
 
-            self.set_material(&ingredient, self.get_material(&ingredient) - amount);
+            self.set_material(
+                &ingredient,
+                self.get_material(&ingredient) - amount * multiplier,
+            );
         }
 
-        self.set_material(material, self.get_material(material) + output);
+        self.set_material(
+            req_material,
+            self.get_material(req_material) + multiplier * output,
+        );
 
         Some(())
     }
@@ -82,10 +109,4 @@ fn parse() -> HashMap<String, Recipe> {
     }
 
     recipes
-}
-
-#[derive(Clone)]
-struct Recipe {
-    input: HashMap<String, usize>,
-    output: usize,
 }

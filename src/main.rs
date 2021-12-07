@@ -1,4 +1,5 @@
 #![feature(map_first_last)]
+#![feature(int_roundings)]
 
 mod comb;
 mod comp;
