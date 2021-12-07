@@ -1,42 +1,64 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 pub fn part1() -> usize {
-    let mut recipes = parse();
-    let mut raw = HashMap::from([(String::from("FUEL"), 1)]);
-
-    while !recipes.is_empty() {
-        let production = raw
-            .keys()
-            .find(|ingredient| {
-                recipes
-                    .values()
-                    .all(|recipe| !recipe.input.contains_key(*ingredient))
-            })
-            .unwrap()
-            .clone();
-
-        let mut production_amount = raw.remove(&production).unwrap();
-
-        let production_recipe = recipes.remove(&production).unwrap();
-
-        while production_amount > 0 {
-            for (ingredient, ingredient_amount) in production_recipe.input.iter() {
-                raw.entry(ingredient.clone())
-                    .and_modify(|c| *c += ingredient_amount)
-                    .or_insert(*ingredient_amount);
-            }
-
-            production_amount = production_amount.saturating_sub(production_recipe.output);
-        }
-    }
-
-    assert_eq!(raw.len(), 1);
-    raw.remove("ORE").unwrap()
+    let mut factory = Factory::new(parse());
+    factory.set_material("ORE", usize::MAX);
+    factory.produce("FUEL");
+    usize::MAX - factory.get_material("ORE")
 }
 
 pub fn part2() -> usize {
-    let _ = parse();
     42
+}
+
+struct Factory {
+    recipes: HashMap<String, Recipe>,
+    materials: BTreeMap<String, usize>,
+}
+
+impl Factory {
+    fn new(recipes: HashMap<String, Recipe>) -> Self {
+        Self {
+            recipes,
+            materials: BTreeMap::new(),
+        }
+    }
+
+    fn get_material(&self, material: &str) -> usize {
+        *self.materials.get(material).unwrap_or(&0)
+    }
+
+    fn set_material(&mut self, material: &str, amount: usize) {
+        self.materials
+            .entry(material.to_string())
+            .and_modify(|a| *a = amount)
+            .or_insert(amount);
+    }
+
+    fn print_materials(&self) {
+        println!("Materials:");
+        for (material, amount) in self.materials.iter() {
+            if *amount != 0 {
+                println!("  {:>6}{:>10}", material, amount);
+            }
+        }
+    }
+
+    fn produce(&mut self, material: &str) -> Option<()> {
+        let Recipe { input, output } = self.recipes.get(material)?.clone();
+
+        for (ingredient, amount) in input.into_iter() {
+            while self.get_material(&ingredient) < amount {
+                self.produce(&ingredient)?;
+            }
+
+            self.set_material(&ingredient, self.get_material(&ingredient) - amount);
+        }
+
+        self.set_material(material, self.get_material(material) + output);
+
+        Some(())
+    }
 }
 
 fn parse() -> HashMap<String, Recipe> {
@@ -62,6 +84,7 @@ fn parse() -> HashMap<String, Recipe> {
     recipes
 }
 
+#[derive(Clone)]
 struct Recipe {
     input: HashMap<String, usize>,
     output: usize,
