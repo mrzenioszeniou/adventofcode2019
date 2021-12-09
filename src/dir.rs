@@ -1,3 +1,4 @@
+#[derive(Clone, Copy, Debug)]
 pub enum Direction {
     North,
     South,
@@ -21,6 +22,15 @@ impl Direction {
             Self::East => Self::South,
             Self::South => Self::West,
             Self::West => Self::North,
+        }
+    }
+
+    pub fn flip(&self) -> Self {
+        match self {
+            Self::North => Self::South,
+            Self::East => Self::West,
+            Self::South => Self::North,
+            Self::West => Self::East,
         }
     }
 
