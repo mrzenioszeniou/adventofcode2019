@@ -1,5 +1,5 @@
 use crate::{comp::IntcodeComputer, dir::Direction};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Tile {
@@ -11,6 +11,10 @@ enum Tile {
 impl Tile {
     fn is_wall(&self) -> bool {
         matches!(self, Self::Wall)
+    }
+
+    fn is_oxygen(&self) -> bool {
+        matches!(self, Self::Oxygen)
     }
 }
 
@@ -123,7 +127,41 @@ pub fn part1() -> usize {
         println!();
     }
 
-    42
+    let target = *map.iter().find(|(pos, tile)| tile.is_oxygen()).unwrap().0;
+    let mut visited: HashMap<(isize, isize), (usize, (isize, isize))> = HashMap::new();
+    let mut to_visit: BTreeMap<usize, (isize, isize)> =
+        BTreeMap::from([((target.0.abs() + target.1.abs()) as usize, (0, 0))]);
+
+    while let Some((curr_distance, mut curr)) = to_visit.pop_first() {
+        if map.get(&curr).unwrap().is_oxygen() {
+            let mut path = vec![curr];
+            while curr != (0, 0) {
+                curr = visited.get(&curr).unwrap().1;
+                path.push(curr);
+            }
+            // println!("{:?}", path);
+            return path.len() - 1;
+        }
+
+        for (neighbour, _) in neighbours(curr) {
+            if map.get(&neighbour).unwrap_or(&Tile::Wall).is_wall() {
+                continue;
+            }
+
+            if visited.get(&neighbour).map(|n| n.0).unwrap_or(usize::MAX) > curr_distance + 1 {
+                visited.insert(neighbour, (curr_distance + 1, curr));
+                to_visit.insert(
+                    curr_distance
+                        + 1
+                        + (target.0 - neighbour.0).abs() as usize
+                        + (target.1 - neighbour.1).abs() as usize,
+                    neighbour,
+                );
+            }
+        }
+    }
+
+    unreachable!();
 }
 
 pub fn part2() -> usize {
