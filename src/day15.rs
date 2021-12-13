@@ -1,5 +1,5 @@
 use crate::{comp::IntcodeComputer, dir::Direction};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeSet, HashMap};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Tile {
@@ -29,16 +29,6 @@ impl From<isize> for Tile {
     }
 }
 
-impl From<Tile> for char {
-    fn from(from: Tile) -> Self {
-        match from {
-            Tile::Empty => ' ',
-            Tile::Oxygen => 'O',
-            Tile::Wall => '▓',
-        }
-    }
-}
-
 fn neighbours(pos: (isize, isize)) -> Vec<((isize, isize), Direction)> {
     [
         Direction::North,
@@ -64,9 +54,7 @@ fn dir_to_num(direction: &Direction) -> isize {
     }
 }
 
-pub fn part1() -> usize {
-    let mut computer = IntcodeComputer::from_file("res/day15.txt");
-
+fn build_map(mut computer: IntcodeComputer) -> HashMap<(isize, isize), Tile> {
     let mut curr = (0, 0);
 
     let mut map: HashMap<(isize, isize), Tile> = HashMap::new();
@@ -105,42 +93,26 @@ pub fn part1() -> usize {
         }
     }
 
-    // Map Ready
-    // TODO: Ger rid of printing and build A*
+    map
+}
 
-    let min_i = map.keys().map(|pos| pos.0).min().unwrap();
-    let max_i = map.keys().map(|pos| pos.0).max().unwrap();
-    let min_j = map.keys().map(|pos| pos.1).min().unwrap();
-    let max_j = map.keys().map(|pos| pos.1).max().unwrap();
+fn a_star(
+    map: &HashMap<(isize, isize), Tile>,
+    start: (isize, isize),
+    end: (isize, isize),
+) -> Option<Vec<(isize, isize)>> {
+    let mut prevs: HashMap<(isize, isize), (isize, isize)> = HashMap::new();
+    let mut dists: HashMap<(isize, isize), usize> = HashMap::from([(start, 0)]);
+    let mut to_visit: BTreeSet<(usize, (isize, isize))> = BTreeSet::from([(0, start)]);
 
-    for i in min_i..=max_i {
-        for j in min_j..=max_j {
-            if i == 0 && j == 0 {
-                print!("X");
-            } else if let Some(tile) = map.get(&(i, j)).map(|t| char::from(*t)) {
-                print!("{}", tile);
-            } else {
-                print!("▓");
-                map.insert((i, j), Tile::Wall);
-            }
-        }
-        println!();
-    }
-
-    let target = *map.iter().find(|(pos, tile)| tile.is_oxygen()).unwrap().0;
-    let mut visited: HashMap<(isize, isize), (usize, (isize, isize))> = HashMap::new();
-    let mut to_visit: BTreeMap<usize, (isize, isize)> =
-        BTreeMap::from([((target.0.abs() + target.1.abs()) as usize, (0, 0))]);
-
-    while let Some((curr_distance, mut curr)) = to_visit.pop_first() {
-        if map.get(&curr).unwrap().is_oxygen() {
+    while let Some((_, mut curr)) = to_visit.pop_first() {
+        if curr == end {
             let mut path = vec![curr];
-            while curr != (0, 0) {
-                curr = visited.get(&curr).unwrap().1;
+            while curr != start {
+                curr = *prevs.get(&curr).unwrap();
                 path.push(curr);
             }
-            // println!("{:?}", path);
-            return path.len() - 1;
+            return Some(path);
         }
 
         for (neighbour, _) in neighbours(curr) {
@@ -148,22 +120,107 @@ pub fn part1() -> usize {
                 continue;
             }
 
-            if visited.get(&neighbour).map(|n| n.0).unwrap_or(usize::MAX) > curr_distance + 1 {
-                visited.insert(neighbour, (curr_distance + 1, curr));
-                to_visit.insert(
+            let curr_distance = *dists.get(&curr).unwrap();
+
+            if *dists.get(&neighbour).unwrap_or(&usize::MAX) > curr_distance + 1 {
+                dists.insert(neighbour, curr_distance + 1);
+                prevs.insert(neighbour, curr);
+                to_visit.insert((
                     curr_distance
                         + 1
-                        + (target.0 - neighbour.0).abs() as usize
-                        + (target.1 - neighbour.1).abs() as usize,
+                        + (end.0 - neighbour.0).abs() as usize
+                        + (end.1 - neighbour.1).abs() as usize,
                     neighbour,
-                );
+                ));
             }
         }
     }
 
-    unreachable!();
+    None
+}
+
+pub fn part1() -> usize {
+    let map = build_map(IntcodeComputer::from_file("res/day15.txt"));
+
+    let oxygen = *map.iter().find(|(_, tile)| tile.is_oxygen()).unwrap().0;
+
+    let path = a_star(&map, (0, 0), oxygen).unwrap();
+
+    path.len() - 1
 }
 
 pub fn part2() -> usize {
-    42
+    let map = build_map(IntcodeComputer::from_file("res/day15.txt"));
+
+    let oxygen = *map.iter().find(|(_, tile)| tile.is_oxygen()).unwrap().0;
+
+    let mut max = vec![];
+
+    for (pos, tile) in map.iter() {
+        if tile.is_wall() {
+            continue;
+        }
+
+        if let Some(path) = a_star(&map, *pos, oxygen) {
+            if path.len() > max.len() {
+                max = path;
+            }
+        }
+    }
+
+    max.len() - 1
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn example() {
+        let map = HashMap::from([
+            ((0, 1), Tile::Wall),
+            ((0, 2), Tile::Wall),
+            ((1, 0), Tile::Wall),
+            ((1, 1), Tile::Empty),
+            ((1, 2), Tile::Empty),
+            ((1, 3), Tile::Wall),
+            ((1, 4), Tile::Wall),
+            ((2, 0), Tile::Wall),
+            ((2, 1), Tile::Empty),
+            ((2, 2), Tile::Wall),
+            ((2, 3), Tile::Empty),
+            ((2, 4), Tile::Empty),
+            ((2, 5), Tile::Wall),
+            ((3, 0), Tile::Wall),
+            ((3, 1), Tile::Empty),
+            ((3, 2), Tile::Oxygen),
+            ((3, 3), Tile::Empty),
+            ((3, 4), Tile::Wall),
+            ((4, 1), Tile::Wall),
+            ((4, 2), Tile::Wall),
+            ((4, 3), Tile::Wall),
+        ]);
+
+        let oxygen = *map.iter().find(|(_, tile)| tile.is_oxygen()).unwrap().0;
+
+        let mut max = 0;
+
+        for (pos, tile) in map.iter() {
+            if tile.is_wall() {
+                continue;
+            }
+
+            if let Some(path) = a_star(&map, oxygen, *pos) {
+                max = std::cmp::max(path.len() - 1, max);
+            }
+        }
+
+        assert_eq!(max, 4);
+    }
+
+    #[test]
+    fn part_two() {
+        part2();
+    }
 }
