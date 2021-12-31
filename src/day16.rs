@@ -1,16 +1,28 @@
 const PATTERN: [isize; 4] = [0, 1, 0, -1];
 
-pub fn part1() -> String {
+pub fn part1() -> isize {
     let mut signal = parse();
 
     for _ in 0..100 {
-        signal = phase(&signal);
+        let mut next = vec![];
+
+        for i in 0..signal.len() {
+            let mut digit = 0;
+            for j in 0..signal.len() {
+                digit += signal[j] * PATTERN[(j + 1) / (i + 1) % PATTERN.len()];
+            }
+            next.push(digit.abs() % 10);
+        }
+
+        signal = next;
     }
 
     signal[0..8]
         .iter()
-        .map(|d| char::from_digit(*d as u32, 10).unwrap())
-        .collect()
+        .rev()
+        .enumerate()
+        .map(|(i, d)| d * 10_isize.pow(i as u32))
+        .sum()
 }
 
 pub fn part2() -> isize {
