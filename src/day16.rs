@@ -26,13 +26,45 @@ pub fn part1() -> isize {
 }
 
 pub fn part2() -> isize {
-    42
+    let mut signal = parse().repeat(10_000);
+
+    let offset: usize = signal[0..7]
+        .iter()
+        .rev()
+        .enumerate()
+        .map(|(i, d)| *d as usize * 10_usize.pow(i as u32))
+        .sum();
+
+    for step in 0..100 {
+        let mut next = vec![];
+
+        for i in 0..signal.len() {
+            let mut digit = 0;
+            for j in i..signal.len() {
+                digit += signal[j] * PATTERN[(j + 1) / (i + 1) % PATTERN.len()];
+            }
+            next.push(digit.abs() % 10);
+            println!("({},{})", step, i);
+        }
+
+        signal = next;
+
+        println!("{}", step);
+    }
+
+    signal[offset..offset + 8]
+        .iter()
+        .rev()
+        .enumerate()
+        .map(|(i, d)| d * 10_isize.pow(i as u32))
+        .sum()
 }
 
 fn phase(num: &[isize]) -> Vec<isize> {
     let mut ret = vec![0; num.len()];
 
     for i in 0..num.len() {
+        println!("{}", i);
         for j in 0..num.len() {
             ret[i] += num[j] * PATTERN[(j + 1) / (i + 1) % PATTERN.len()];
         }
