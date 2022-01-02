@@ -6,7 +6,7 @@ pub fn part1() -> isize {
     for _ in 0..100 {
         let mut next = vec![];
 
-        for i in 0..signal.len() {
+        for i in 0..signal.iter().len() {
             let mut digit = 0;
             for j in 0..signal.len() {
                 digit += signal[j] * PATTERN[(j + 1) / (i + 1) % PATTERN.len()];
@@ -35,21 +35,13 @@ pub fn part2() -> isize {
         .map(|(i, d)| *d as usize * 10_usize.pow(i as u32))
         .sum();
 
-    for step in 0..100 {
-        let mut next = vec![];
+    for _ in 0..100 {
+        let mut prev = *signal.last().unwrap();
 
-        for i in 0..signal.len() {
-            let mut digit = 0;
-            for j in i..signal.len() {
-                digit += signal[j] * PATTERN[(j + 1) / (i + 1) % PATTERN.len()];
-            }
-            next.push(digit.abs() % 10);
-            println!("({},{})", step, i);
+        for digit in signal.iter_mut().skip(offset).rev() {
+            *digit = (*digit + prev) % 10;
+            prev = *digit;
         }
-
-        signal = next;
-
-        println!("{}", step);
     }
 
     signal[offset..offset + 8]
@@ -60,49 +52,10 @@ pub fn part2() -> isize {
         .sum()
 }
 
-fn phase(num: &[isize]) -> Vec<isize> {
-    let mut ret = vec![0; num.len()];
-
-    for i in 0..num.len() {
-        println!("{}", i);
-        for j in 0..num.len() {
-            ret[i] += num[j] * PATTERN[(j + 1) / (i + 1) % PATTERN.len()];
-        }
-    }
-
-    ret.into_iter().map(|n| n.abs() % 10).collect()
-}
-
 fn parse() -> Vec<isize> {
     std::fs::read_to_string("res/day16.txt")
         .unwrap()
         .chars()
         .map(|c| c.to_digit(10).unwrap() as isize)
         .collect()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn example() {
-        let mut signal = vec![1, 2, 3, 4, 5, 6, 7, 8];
-
-        signal = phase(&signal);
-
-        assert_eq!(signal, vec![4, 8, 2, 2, 6, 1, 5, 8]);
-
-        signal = phase(&signal);
-
-        assert_eq!(signal, vec![3, 4, 0, 4, 0, 4, 3, 8]);
-
-        signal = phase(&signal);
-
-        assert_eq!(signal, vec![0, 3, 4, 1, 5, 5, 1, 8]);
-
-        signal = phase(&signal);
-
-        assert_eq!(signal, vec![0, 1, 0, 2, 9, 4, 9, 8]);
-    }
 }
