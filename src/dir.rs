@@ -43,3 +43,19 @@ impl Direction {
         }
     }
 }
+
+pub fn neighbours(pos: (isize, isize)) -> Vec<((isize, isize), Direction)> {
+    [
+        Direction::North,
+        Direction::South,
+        Direction::East,
+        Direction::West,
+    ]
+    .iter()
+    .map(|dir| {
+        let step = dir.forward();
+
+        ((pos.0 + step.0, pos.1 + step.1), *dir)
+    })
+    .collect()
+}

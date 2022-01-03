@@ -11,6 +11,7 @@ mod day13;
 mod day14;
 mod day15;
 mod day16;
+mod day17;
 mod day2;
 mod day3;
 mod day4;
@@ -49,6 +50,7 @@ fn main() {
         14 => println!("PART 1:{}\nPART 2:{}", day14::part1(), day14::part2()),
         15 => println!("PART 1:{}\nPART 2:{}", day15::part1(), day15::part2()),
         16 => println!("PART 1:{}\nPART 2:{}", day16::part1(), day16::part2()),
+        17 => println!("PART 1:{}\nPART 2:{}", day17::part1(), day17::part2()),
         _ => println!("No implementation available for day {}", day),
     }
 }

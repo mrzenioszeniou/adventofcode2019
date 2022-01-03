@@ -1,4 +1,7 @@
-use crate::{comp::IntcodeComputer, dir::Direction};
+use crate::{
+    comp::IntcodeComputer,
+    dir::{neighbours, Direction},
+};
 use std::collections::{BTreeSet, HashMap};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -27,22 +30,6 @@ impl From<isize> for Tile {
             _ => panic!("Can't derive tile from {}", from),
         }
     }
-}
-
-fn neighbours(pos: (isize, isize)) -> Vec<((isize, isize), Direction)> {
-    [
-        Direction::North,
-        Direction::South,
-        Direction::East,
-        Direction::West,
-    ]
-    .iter()
-    .map(|dir| {
-        let step = dir.forward();
-
-        ((pos.0 + step.0, pos.1 + step.1), *dir)
-    })
-    .collect()
 }
 
 fn dir_to_num(direction: &Direction) -> isize {
