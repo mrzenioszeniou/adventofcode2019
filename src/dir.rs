@@ -1,9 +1,36 @@
-#[derive(Clone, Copy, Debug)]
+use std::convert::TryFrom;
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Direction {
     North,
     South,
     East,
     West,
+}
+
+impl TryFrom<char> for Direction {
+    type Error = String;
+
+    fn try_from(from: char) -> Result<Self, Self::Error> {
+        match from {
+            'N' | '^' => Ok(Self::North),
+            'S' | 'v' => Ok(Self::South),
+            'W' | '<' => Ok(Self::West),
+            'E' | '>' => Ok(Self::East),
+            _ => Err(format!("`{}` is not a valid as direction", from)),
+        }
+    }
+}
+
+impl From<Direction> for char {
+    fn from(from: Direction) -> Self {
+        match from {
+            Direction::North => '^',
+            Direction::South => 'v',
+            Direction::East => '>',
+            Direction::West => '<',
+        }
+    }
 }
 
 impl Direction {
