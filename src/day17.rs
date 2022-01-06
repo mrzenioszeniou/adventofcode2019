@@ -1,4 +1,8 @@
-use std::{collections::HashSet, convert::TryFrom, fmt::Display};
+use std::{
+    collections::HashSet,
+    convert::TryFrom,
+    fmt::{Debug, Display},
+};
 
 use crate::{
     comp::IntcodeComputer,
@@ -6,21 +10,43 @@ use crate::{
 };
 
 pub fn part1() -> isize {
-    parse().2.iter().map(|(i, j)| i * j).sum()
+    let mut computer = IntcodeComputer::from_file("res/day17.txt");
+    let output: String = computer
+        .execute(vec![])
+        .into_iter()
+        .map(|b| char::from(b as u8))
+        .collect();
+
+    parse(&output).2.iter().map(|(i, j)| i * j).sum()
 }
 
 pub fn part2() -> usize {
-    let (start, scaffolds, intersections) = parse();
+    let mut computer = IntcodeComputer::from_file("res/day17.txt");
+    let output: String = computer
+        .execute(vec![])
+        .into_iter()
+        .map(|b| char::from(b as u8))
+        .collect();
 
-    let paths = find_path(start, scaffolds, &intersections);
+    let (start, scaffolds, intersections) = parse(&output);
+
+    let mut paths = find_path(start, scaffolds, &intersections)
+        .into_iter()
+        .map(trim_path)
+        .collect::<Vec<_>>();
+
+    paths.sort_by_key(|p| p.len());
 
     println!("{} paths found", paths.len());
-    for (i, path) in paths.into_iter().enumerate().take(2) {
-        print!("Path {}: ", i);
-        for mov in trim_path(path) {
-            print!("{} ", mov);
+    for (i, path) in paths.into_iter().enumerate() {
+        print!("Path {}: {}", i, fmt_path(&path));
+
+        if let Some(functions) = get_funcs(&path, &[], &[]) {
+            println!("Functions: {:?}", functions);
+            break;
+        } else {
+            println!();
         }
-        println!()
     }
 
     // let mut min_i = isize::MAX;
@@ -126,21 +152,62 @@ fn trim_path(path: Vec<Move>) -> Vec<Move> {
     ret
 }
 
+fn get_funcs(
+    path: &[Move],
+    functions: &[Vec<Move>],
+    routine: &[usize],
+) -> Option<(Vec<Vec<Move>>, Vec<usize>)> {
+    // print!("Trying ");
+    // for func in functions.iter() {
+    //     print!("{},", fmt_path(func));
+    // }
+    // println!(" for `{}`", fmt_path(path));
+
+    let used_chars = routine.len() + functions.iter().map(|f| f.len()).sum::<usize>();
+
+    if used_chars > 20 {
+        return None;
+    } else if path.is_empty() {
+        return Some((functions.to_vec(), routine.to_vec()));
+    }
+
+    for (f, function) in functions.iter().enumerate() {
+        if let Some(remainder) = path.strip_prefix(function.as_slice()) {
+            let mut routine = routine.to_vec();
+            routine.push(f);
+
+            if let Some(solution) = get_funcs(remainder, functions, &routine) {
+                return Some(solution);
+            }
+        }
+    }
+
+    for i in 1..=20 - used_chars {
+        let mut functions = functions.to_vec();
+        functions.push(path[0..i].to_vec());
+
+        let mut routine = routine.to_vec();
+        routine.push(functions.len() - 1);
+
+        if let Some(solution) = get_funcs(&path[i..], &functions, &routine) {
+            return Some(solution);
+        }
+    }
+
+    None
+}
+
 type Point = (isize, isize);
 
 /// (Start, Scaffolds, Intersections)
-fn parse() -> (State, HashSet<Point>, HashSet<Point>) {
-    let mut computer = IntcodeComputer::from_file("res/day17.txt");
-
+fn parse(from: &str) -> (State, HashSet<Point>, HashSet<Point>) {
     let mut scaffolds = HashSet::new();
     let mut start = None;
 
     let mut i = 0;
     let mut j = 0;
 
-    for c in computer.execute(vec![]) {
-        let t = char::from(c as u8);
-
+    for t in from.chars() {
         print!("{}", t);
 
         match t {
@@ -184,7 +251,7 @@ struct State {
     dir: Direction,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 enum Move {
     Left,
     Right,
@@ -201,12 +268,98 @@ impl Display for Move {
     }
 }
 
+fn fmt_path(path: &[Move]) -> String {
+    let mut ret = String::with_capacity(path.len());
+
+    for mov in path.iter() {
+        ret.push_str(&format!("{}", mov));
+    }
+
+    ret
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn examples() {
-        part2();
+        let input = r#"#######...#####
+#.....#...#...#
+#.....#...#...#
+......#...#...#
+......#...###.#
+......#.....#.#
+^########...#.#
+......#.#...#.#
+......#########
+........#...#..
+....#########..
+....#...#......
+....#...#......
+....#...#......
+....#####......"#;
+
+        let input = parse(input);
+
+        assert!(find_path(input.0, input.1, &input.2)
+            .into_iter()
+            .map(|p| fmt_path(&trim_path(p)))
+            .any(|p| &p == "R8R8R4R4R8L6L2R4R4R8R8R8L6L2"));
+
+        let path = vec![
+            Move::Right,
+            Move::Forward(8),
+            Move::Right,
+            Move::Forward(8),
+            Move::Right,
+            Move::Forward(4),
+            Move::Right,
+            Move::Forward(4),
+            Move::Right,
+            Move::Forward(8),
+            Move::Left,
+            Move::Forward(6),
+            Move::Left,
+            Move::Forward(2),
+            Move::Right,
+            Move::Forward(4),
+            Move::Right,
+            Move::Forward(4),
+            Move::Right,
+            Move::Forward(8),
+            Move::Right,
+            Move::Forward(8),
+            Move::Right,
+            Move::Forward(8),
+            Move::Left,
+            Move::Forward(6),
+            Move::Left,
+            Move::Forward(2),
+        ];
+
+        assert!(get_funcs(&path, &[], &[]).is_some());
+
+        // assert_eq!(
+        //     get_funcs(&path, &[], &[]),
+        //     Some((
+        //         vec![
+        //             vec![Move::Right, Move::Forward(8), Move::Right, Move::Forward(8)],
+        //             vec![
+        //                 Move::Right,
+        //                 Move::Forward(4),
+        //                 Move::Right,
+        //                 Move::Forward(4),
+        //                 Move::Right,
+        //                 Move::Forward(8)
+        //             ],
+        //             vec![Move::Left, Move::Forward(6), Move::Left, Move::Forward(2)]
+        //         ],
+        //         vec![0, 1, 2, 1, 0, 2]
+        //     ))
+        // );
+
+        // println!("{}", fmt_path(&path));
+        // println!("{:?}", get_funcs(&path, &[], &[]));
     }
 }
