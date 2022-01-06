@@ -1,4 +1,4 @@
-use std::{collections::HashSet, convert::TryFrom};
+use std::{collections::HashSet, convert::TryFrom, fmt::Display};
 
 use crate::{
     comp::IntcodeComputer,
@@ -12,13 +12,13 @@ pub fn part1() -> isize {
 pub fn part2() -> usize {
     let (start, scaffolds, intersections) = parse();
 
-    let paths = find_path(start.pos, scaffolds, &intersections);
+    let paths = find_path(start, scaffolds, &intersections);
 
     println!("{} paths found", paths.len());
     for (i, path) in paths.into_iter().enumerate().take(2) {
         print!("Path {}: ", i);
-        for mov in trim(path, start.dir) {
-            print!("{:?} ", mov);
+        for mov in trim_path(path) {
+            print!("{} ", mov);
         }
         println!()
     }
@@ -57,7 +57,7 @@ pub fn part2() -> usize {
 }
 
 fn find_path(
-    pos: Point,
+    state: State,
     unvisited: HashSet<Point>,
     intersections: &HashSet<Point>,
 ) -> Vec<Vec<Move>> {
@@ -67,23 +67,22 @@ fn find_path(
 
     let mut ret = vec![];
 
-    for dir in [
-        Direction::East,
-        Direction::North,
-        Direction::West,
-        Direction::South,
+    for (dir, rotation) in [
+        (state.dir, None),
+        (state.dir.left(), Some(Move::Left)),
+        (state.dir.right(), Some(Move::Right)),
     ] {
         let mut unvisited = unvisited.clone();
-        let mut curr = pos;
+        let mut curr = state.clone();
         let mut steps = 0;
 
         loop {
             let step = dir.forward();
-            let next = (curr.0 + step.0, curr.1 + step.1);
+            let next = (curr.pos.0 + step.0, curr.pos.1 + step.1);
 
             if unvisited.contains(&next) || intersections.contains(&next) {
                 unvisited.remove(&next);
-                curr = next;
+                curr = State { pos: next, dir };
                 steps += 1;
 
                 if intersections.contains(&next) {
@@ -98,8 +97,10 @@ fn find_path(
             find_path(curr, unvisited, intersections)
                 .into_iter()
                 .for_each(|mut path| {
-                    path.push(Move::Move(steps));
-                    path.push(Move::Rotate(dir));
+                    path.push(Move::Forward(steps));
+                    if let Some(rotation) = &rotation {
+                        path.push(rotation.clone());
+                    }
                     ret.push(path);
                 });
         }
@@ -108,25 +109,16 @@ fn find_path(
     ret
 }
 
-fn trim(path: Vec<Move>, init_dir: Direction) -> Vec<Move> {
+fn trim_path(path: Vec<Move>) -> Vec<Move> {
     let mut ret = vec![];
 
-    let mut curr_dir = init_dir;
-
     for mov in path.into_iter().rev() {
-        match mov {
-            Move::Rotate(dir) => {
-                if dir != curr_dir {
-                    ret.push(mov);
-                    curr_dir = dir;
-                }
+        match (&mov, ret.last_mut()) {
+            (Move::Forward(steps), Some(Move::Forward(ref mut prev))) => {
+                *prev += steps;
             }
-            Move::Move(steps) => {
-                if let Some(Move::Move(ref mut prev)) = ret.last_mut() {
-                    *prev += steps;
-                } else {
-                    ret.push(mov);
-                }
+            _ => {
+                ret.push(mov);
             }
         }
     }
@@ -194,8 +186,19 @@ struct State {
 
 #[derive(Clone, Debug)]
 enum Move {
-    Rotate(Direction),
-    Move(usize),
+    Left,
+    Right,
+    Forward(usize),
+}
+
+impl Display for Move {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Forward(n) => write!(f, "{}", n),
+            Self::Left => write!(f, "L"),
+            Self::Right => write!(f, "R"),
+        }
+    }
 }
 
 #[cfg(test)]
