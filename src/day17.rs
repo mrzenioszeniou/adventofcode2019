@@ -41,45 +41,25 @@ pub fn part2() -> usize {
     for (i, path) in paths.into_iter().enumerate() {
         print!("Path {}: {}", i, fmt_path(&path));
 
-        if let Some(functions) = get_funcs(&path, &[], &[]) {
-            println!("Functions: {:?}", functions);
-            break;
+        if let Some((functions, routine)) = get_funcs(&path, &[], &[]) {
+            println!(" ✅\n");
+
+            for (function, c) in functions.into_iter().zip('A'..'Z') {
+                println!("{}: {}", c, fmt_path(&function));
+            }
+
+            println!();
+            for f in routine {
+                print!("{} ", ('A' as usize + f) as u8 as char);
+            }
+
+            return 42;
         } else {
             println!();
         }
     }
 
-    // let mut min_i = isize::MAX;
-    // let mut max_i = isize::MIN;
-    // let mut min_j = isize::MAX;
-    // let mut max_j = isize::MIN;
-
-    // for pos in start.unvisited.iter() {
-    //     min_i = std::cmp::min(min_i, pos.0);
-    //     max_i = std::cmp::max(max_i, pos.0);
-    //     min_j = std::cmp::min(min_j, pos.1);
-    //     max_j = std::cmp::max(max_j, pos.1);
-    // }
-
-    // for state in paths[0].iter().rev() {
-    //     for i in min_i..=max_i {
-    //         for j in min_j..=max_j {
-    //             if state.pos == (i, j) {
-    //                 print!("{}", char::from(state.dir));
-    //             } else if state.unvisited.contains(&(i, j)) {
-    //                 print!("#");
-    //             } else {
-    //                 print!(" ");
-    //             }
-    //         }
-    //         println!();
-    //     }
-    //     println!();
-    //     println!();
-    //     std::thread::sleep(Duration::from_millis(250));
-    // }
-
-    42
+    panic!("No valid path found");
 }
 
 fn find_path(
@@ -157,12 +137,6 @@ fn get_funcs(
     functions: &[Vec<Move>],
     routine: &[usize],
 ) -> Option<(Vec<Vec<Move>>, Vec<usize>)> {
-    // print!("Trying ");
-    // for func in functions.iter() {
-    //     print!("{},", fmt_path(func));
-    // }
-    // println!(" for `{}`", fmt_path(path));
-
     let used_chars = routine.len() + functions.iter().map(|f| f.len()).sum::<usize>();
 
     if used_chars > 20 {
@@ -182,7 +156,17 @@ fn get_funcs(
         }
     }
 
-    for i in 1..=20 - used_chars {
+    if path.len() < 20_usize.saturating_sub(used_chars + 1) {
+        let mut functions = functions.to_vec();
+        functions.push(path.to_vec());
+
+        let mut routine = routine.to_vec();
+        routine.push(functions.len() - 1);
+
+        return Some((functions, routine));
+    }
+
+    for i in 2..=20_usize.saturating_sub(used_chars + 1) {
         let mut functions = functions.to_vec();
         functions.push(path[0..i].to_vec());
 
@@ -197,6 +181,16 @@ fn get_funcs(
     None
 }
 
+fn fmt_path(path: &[Move]) -> String {
+    let mut ret = String::with_capacity(path.len());
+
+    for mov in path.iter() {
+        ret.push_str(&format!("{}", mov));
+    }
+
+    ret
+}
+
 type Point = (isize, isize);
 
 /// (Start, Scaffolds, Intersections)
@@ -208,8 +202,6 @@ fn parse(from: &str) -> (State, HashSet<Point>, HashSet<Point>) {
     let mut j = 0;
 
     for t in from.chars() {
-        print!("{}", t);
-
         match t {
             '.' => {}
             '\n' => {
@@ -268,14 +260,15 @@ impl Display for Move {
     }
 }
 
-fn fmt_path(path: &[Move]) -> String {
-    let mut ret = String::with_capacity(path.len());
-
-    for mov in path.iter() {
-        ret.push_str(&format!("{}", mov));
+impl From<char> for Move {
+    fn from(from: char) -> Self {
+        match from {
+            'L' => Self::Left,
+            'R' => Self::Right,
+            d if from.is_numeric() => Self::Forward(d.to_digit(10).unwrap() as usize),
+            _ => panic!("Can't parse `{}` as a move", from),
+        }
     }
-
-    ret
 }
 
 #[cfg(test)]
@@ -307,59 +300,11 @@ mod tests {
             .map(|p| fmt_path(&trim_path(p)))
             .any(|p| &p == "R8R8R4R4R8L6L2R4R4R8R8R8L6L2"));
 
-        let path = vec![
-            Move::Right,
-            Move::Forward(8),
-            Move::Right,
-            Move::Forward(8),
-            Move::Right,
-            Move::Forward(4),
-            Move::Right,
-            Move::Forward(4),
-            Move::Right,
-            Move::Forward(8),
-            Move::Left,
-            Move::Forward(6),
-            Move::Left,
-            Move::Forward(2),
-            Move::Right,
-            Move::Forward(4),
-            Move::Right,
-            Move::Forward(4),
-            Move::Right,
-            Move::Forward(8),
-            Move::Right,
-            Move::Forward(8),
-            Move::Right,
-            Move::Forward(8),
-            Move::Left,
-            Move::Forward(6),
-            Move::Left,
-            Move::Forward(2),
-        ];
+        let path: Vec<Move> = "R8R8R4R4R8L6L2R4R4R8R8R8L6L2"
+            .chars()
+            .map(Move::from)
+            .collect();
 
         assert!(get_funcs(&path, &[], &[]).is_some());
-
-        // assert_eq!(
-        //     get_funcs(&path, &[], &[]),
-        //     Some((
-        //         vec![
-        //             vec![Move::Right, Move::Forward(8), Move::Right, Move::Forward(8)],
-        //             vec![
-        //                 Move::Right,
-        //                 Move::Forward(4),
-        //                 Move::Right,
-        //                 Move::Forward(4),
-        //                 Move::Right,
-        //                 Move::Forward(8)
-        //             ],
-        //             vec![Move::Left, Move::Forward(6), Move::Left, Move::Forward(2)]
-        //         ],
-        //         vec![0, 1, 2, 1, 0, 2]
-        //     ))
-        // );
-
-        // println!("{}", fmt_path(&path));
-        // println!("{:?}", get_funcs(&path, &[], &[]));
     }
 }
