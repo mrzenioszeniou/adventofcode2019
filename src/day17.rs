@@ -20,7 +20,7 @@ pub fn part1() -> isize {
     parse(&output).2.iter().map(|(i, j)| i * j).sum()
 }
 
-pub fn part2() -> usize {
+pub fn part2() -> isize {
     let mut computer = IntcodeComputer::from_file("res/day17.txt");
     let output: String = computer
         .execute(vec![])
@@ -37,25 +37,30 @@ pub fn part2() -> usize {
 
     paths.sort_by_key(|p| p.len());
 
-    println!("{} paths found", paths.len());
-    for (i, path) in paths.into_iter().enumerate() {
-        print!("Path {}: {}", i, fmt_path(&path));
-
+    for (_, path) in paths.into_iter().enumerate() {
         if let Some((functions, routine)) = get_funcs(&path, &[], &[]) {
-            println!(" ✅\n");
-
-            for (function, c) in functions.into_iter().zip('A'..'Z') {
-                println!("{}: {}", c, fmt_path(&function));
-            }
-
-            println!();
+            let mut input: String = String::new();
             for f in routine {
-                print!("{} ", ('A' as usize + f) as u8 as char);
+                input.push((b'A' + f as u8) as char);
+                input.push(',');
             }
+            input.pop();
+            input.push('\n');
 
-            return 42;
-        } else {
-            println!();
+            for function in functions {
+                for m in function {
+                    input = format!("{input}{},", m);
+                }
+                input.pop();
+                input.push('\n')
+            }
+            input.push_str("n\n");
+
+            let mut computer = IntcodeComputer::from_file("res/day17.txt");
+            computer.override_mem(0, 2);
+            let output = computer.execute(input.chars().map(|c| c as isize).rev().collect());
+
+            return *output.last().unwrap();
         }
     }
 
@@ -137,11 +142,7 @@ fn get_funcs(
     functions: &[Vec<Move>],
     routine: &[usize],
 ) -> Option<(Vec<Vec<Move>>, Vec<usize>)> {
-    let used_chars = routine.len() + functions.iter().map(|f| f.len()).sum::<usize>();
-
-    if used_chars > 20 {
-        return None;
-    } else if path.is_empty() {
+    if path.is_empty() {
         return Some((functions.to_vec(), routine.to_vec()));
     }
 
@@ -156,25 +157,17 @@ fn get_funcs(
         }
     }
 
-    if path.len() < 20_usize.saturating_sub(used_chars + 1) {
-        let mut functions = functions.to_vec();
-        functions.push(path.to_vec());
+    if functions.len() < 3 {
+        for i in 2..=std::cmp::min(20, path.len()) {
+            let mut functions = functions.to_vec();
+            functions.push(path[0..i].to_vec());
 
-        let mut routine = routine.to_vec();
-        routine.push(functions.len() - 1);
+            let mut routine = routine.to_vec();
+            routine.push(functions.len() - 1);
 
-        return Some((functions, routine));
-    }
-
-    for i in 2..=20_usize.saturating_sub(used_chars + 1) {
-        let mut functions = functions.to_vec();
-        functions.push(path[0..i].to_vec());
-
-        let mut routine = routine.to_vec();
-        routine.push(functions.len() - 1);
-
-        if let Some(solution) = get_funcs(&path[i..], &functions, &routine) {
-            return Some(solution);
+            if let Some(solution) = get_funcs(&path[i..], &functions, &routine) {
+                return Some(solution);
+            }
         }
     }
 
