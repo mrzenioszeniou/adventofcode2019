@@ -174,16 +174,6 @@ fn get_funcs(
     None
 }
 
-fn fmt_path(path: &[Move]) -> String {
-    let mut ret = String::with_capacity(path.len());
-
-    for mov in path.iter() {
-        ret.push_str(&format!("{}", mov));
-    }
-
-    ret
-}
-
 type Point = (isize, isize);
 
 /// (Start, Scaffolds, Intersections)
@@ -267,6 +257,16 @@ impl From<char> for Move {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn fmt_path(path: &[Move]) -> String {
+        let mut ret = String::with_capacity(path.len());
+
+        for mov in path.iter() {
+            ret.push_str(&format!("{}", mov));
+        }
+
+        ret
+    }
 
     #[test]
     fn examples() {
