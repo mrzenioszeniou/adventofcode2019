@@ -1,6 +1,5 @@
-use std::collections::{BTreeSet, HashMap, HashSet};
-
 use crate::{dir::neighbours, util::a_star};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 pub fn part1() -> usize {
     let input = std::fs::read_to_string("res/day18.txt").unwrap();
@@ -48,17 +47,6 @@ fn part1_solver(input: &str) -> usize {
         }
     }
 
-    // println!("Paths:");
-    // for (pair, path) in paths.iter() {
-    //     println!(
-    //         "{}→{}: {} steps dependent on {:?}",
-    //         pair.0,
-    //         pair.1,
-    //         path.len() - 1,
-    //         dependencies.get(pair).unwrap()
-    //     );
-    // }
-
     let mut cache = HashMap::new();
 
     find_shortest_path(
@@ -69,12 +57,43 @@ fn part1_solver(input: &str) -> usize {
         &mut cache,
     )
     .len()
+}
 
-    // 42
+pub fn part2() -> usize {
+    42
+}
 
-    // solve(start, &tiles, keys, doors)
-    //     .expect("No solution found")
-    //     .len()
+type Point = (isize, isize);
+
+// (Valid Spaces, Keys, Doors)
+fn parse(from: &str) -> (HashSet<Point>, HashMap<char, Point>, HashMap<Point, char>) {
+    let mut tiles = HashSet::new();
+    let mut keys = HashMap::new();
+    let mut doors = HashMap::new();
+
+    for (i, line) in from.split('\n').enumerate() {
+        for (j, c) in line.chars().enumerate() {
+            let point = (i as isize, j as isize);
+
+            match c {
+                '#' => {}
+                '.' => {
+                    tiles.insert(point);
+                }
+                '@' | 'a'..='z' => {
+                    tiles.insert(point);
+                    keys.insert(c, point);
+                }
+                'A'..='Z' => {
+                    tiles.insert(point);
+                    doors.insert(point, c);
+                }
+                _ => panic!("Unexpected map tile `{}` at ({},{})", c, i, j),
+            }
+        }
+    }
+
+    (tiles, keys, doors)
 }
 
 fn find_shortest_path(
@@ -84,8 +103,6 @@ fn find_shortest_path(
     dependencies: &HashMap<(char, char), HashSet<char>>,
     cache: &mut HashMap<char, HashMap<BTreeSet<char>, Vec<Point>>>,
 ) -> Vec<Point> {
-    // println!("{} @ {:?}", curr, keys);
-
     if keys.is_empty() {
         return vec![];
     }
@@ -130,42 +147,6 @@ fn find_shortest_path(
     }
 
     ret
-}
-
-pub fn part2() -> usize {
-    42
-}
-
-type Point = (isize, isize);
-
-fn parse(from: &str) -> (HashSet<Point>, HashMap<char, Point>, HashMap<Point, char>) {
-    let mut tiles = HashSet::new();
-    let mut keys = HashMap::new();
-    let mut doors = HashMap::new();
-
-    for (i, line) in from.split('\n').enumerate() {
-        for (j, c) in line.chars().enumerate() {
-            let point = (i as isize, j as isize);
-
-            match c {
-                '#' => {}
-                '.' => {
-                    tiles.insert(point);
-                }
-                '@' | 'a'..='z' => {
-                    tiles.insert(point);
-                    keys.insert(c, point);
-                }
-                'A'..='Z' => {
-                    tiles.insert(point);
-                    doors.insert(point, c);
-                }
-                _ => panic!("Unexpected map tile `{}` at ({},{})", c, i, j),
-            }
-        }
-    }
-
-    (tiles, keys, doors)
 }
 
 #[cfg(test)]
