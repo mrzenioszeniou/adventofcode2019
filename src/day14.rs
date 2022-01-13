@@ -63,7 +63,7 @@ impl Factory {
         let Recipe { input, output } = self.recipes.get(req_material)?.clone();
 
         // Amount of times the recipe must be executed
-        let multiplier = req_amount.unstable_div_ceil(output);
+        let multiplier = req_amount.div_ceil(output);
 
         for (ingredient, amount) in input.into_iter() {
             let missing_amount =

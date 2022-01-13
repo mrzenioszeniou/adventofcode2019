@@ -2,16 +2,24 @@ use crate::{dir::neighbours, util::a_star};
 use std::collections::{BTreeSet, HashMap, HashSet};
 
 pub fn part1() -> usize {
-    let input = std::fs::read_to_string("res/day18.txt").unwrap();
-    part1_solver(&input)
+    let input = std::fs::read_to_string("res/day18_1.txt").unwrap();
+    solver(&input)
 }
 
-fn part1_solver(input: &str) -> usize {
+pub fn part2() -> usize {
+    42
+}
+
+fn solver(input: &str) -> usize {
     let (tiles, mut keys, doors) = parse(input);
 
     let keys_and_start = keys.clone();
 
-    keys.remove(&'@').unwrap();
+    keys.remove(&'@');
+    keys.remove(&'0');
+    keys.remove(&'1');
+    keys.remove(&'2');
+    keys.remove(&'3');
 
     let nexts = |pos: &Point| {
         neighbours((pos.0 as isize, pos.1 as isize))
@@ -50,17 +58,13 @@ fn part1_solver(input: &str) -> usize {
     let mut cache = HashMap::new();
 
     find_shortest_path(
-        '@',
+        vec!['@'],
         keys.keys().cloned().collect(),
         &paths,
         &dependencies,
         &mut cache,
     )
     .len()
-}
-
-pub fn part2() -> usize {
-    42
 }
 
 type Point = (isize, isize);
@@ -97,39 +101,44 @@ fn parse(from: &str) -> (HashSet<Point>, HashMap<char, Point>, HashMap<Point, ch
 }
 
 fn find_shortest_path(
-    curr: char,
+    currs: Vec<char>,
     keys: BTreeSet<char>,
     paths: &HashMap<(char, char), Vec<Point>>,
     dependencies: &HashMap<(char, char), HashSet<char>>,
-    cache: &mut HashMap<char, HashMap<BTreeSet<char>, Vec<Point>>>,
+    cache: &mut HashMap<Vec<char>, HashMap<BTreeSet<char>, Vec<Point>>>,
 ) -> Vec<Point> {
     if keys.is_empty() {
         return vec![];
     }
 
-    if let Some(ret) = cache.get(&curr).and_then(|k| k.get(&keys)) {
+    if let Some(ret) = cache.get(&currs).and_then(|k| k.get(&keys)) {
         return ret.clone();
     }
 
     let mut best: Option<Vec<Point>> = None;
 
-    for to in keys.iter() {
-        if dependencies
-            .get(&(curr, *to))
-            .unwrap()
-            .iter()
-            .all(|d| !keys.contains(d))
-        {
-            let mut keys = keys.clone();
-            keys.remove(to);
+    for (i, curr) in currs.iter().enumerate() {
+        for to in keys.iter() {
+            if dependencies
+                .get(&(*curr, *to))
+                .map(|deps| deps.iter().all(|d| !keys.contains(d)))
+                .unwrap_or(false)
+            {
+                let mut keys = keys.clone();
+                keys.remove(to);
 
-            let subpath = find_shortest_path(*to, keys, paths, dependencies, cache);
-            let path = paths.get(&(curr, *to)).unwrap();
+                let mut currs = currs.clone();
+                currs[i] = *to;
 
-            if best.as_ref().map(|b| b.len()).unwrap_or(usize::MAX) > subpath.len() + path.len() {
-                let mut path = path.clone();
-                path.extend(&subpath);
-                best = Some(path);
+                let subpath = find_shortest_path(currs, keys, paths, dependencies, cache);
+                let path = paths.get(&(*curr, *to)).unwrap();
+
+                if best.as_ref().map(|b| b.len()).unwrap_or(usize::MAX) > subpath.len() + path.len()
+                {
+                    let mut path = path.clone();
+                    path.extend(&subpath);
+                    best = Some(path);
+                }
             }
         }
     }
@@ -137,13 +146,13 @@ fn find_shortest_path(
     let ret = best.unwrap();
 
     if cache
-        .get(&curr)
+        .get(&currs)
         .and_then(|k| k.get(&keys))
         .map(|p| p.len())
         .unwrap_or(usize::MAX)
         > ret.len()
     {
-        cache.entry(curr).or_default().insert(keys, ret.clone());
+        cache.entry(currs).or_default().insert(keys, ret.clone());
     }
 
     ret
@@ -159,21 +168,21 @@ mod tests {
         let input = "#########
 #b.A.@.a#
 #########";
-        assert_eq!(part1_solver(input), 8);
+        assert_eq!(solver(input), 8);
 
         let input = "########################
 #f.D.E.e.C.b.A.@.a.B.c.#
 ######################.#
 #d.....................#
 ########################";
-        assert_eq!(part1_solver(input), 86);
+        assert_eq!(solver(input), 86);
 
         let input = "########################
 #...............b.C.D.f#
 #.######################
 #.....@.a.B.c.d.A.e.F.g#
 ########################";
-        assert_eq!(part1_solver(input), 132);
+        assert_eq!(solver(input), 132);
 
         let input = "#################
 #i.G..c...e..H.p#
@@ -184,7 +193,7 @@ mod tests {
 ########.########
 #l.F..d...h..C.m#
 #################";
-        assert_eq!(part1_solver(input), 136);
+        assert_eq!(solver(input), 136);
 
         let input = "########################
 #@..............ac.GI.b#
@@ -192,6 +201,6 @@ mod tests {
 ###A#B#C################
 ###g#h#i################
 ########################";
-        assert_eq!(part1_solver(input), 81);
+        assert_eq!(solver(input), 81);
     }
 }
