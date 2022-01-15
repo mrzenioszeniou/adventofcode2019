@@ -7,7 +7,28 @@ pub fn part1() -> usize {
 }
 
 pub fn part2() -> usize {
-    42
+    let mut split: Vec<Vec<char>> = vec![vec![], vec![]];
+
+    let mut line = vec![];
+    for c in std::fs::read_to_string("res/day18_2.txt").unwrap().chars() {
+        if c == '\n' {
+            let mid = line.len() / 2;
+            split[0].extend(&line[0..mid]);
+            split[0].push('\n');
+            split[1].extend(&line[mid..]);
+            split[1].push('\n');
+            line = vec![];
+        } else {
+            line.push(c);
+        }
+    }
+
+    let top_left: String = split[0][0..split[0].len() / 2].iter().collect();
+    let bottom_left: String = split[0][split[0].len() / 2..].iter().collect();
+    let top_right: String = split[1][0..split[1].len() / 2].iter().collect();
+    let bottom_right: String = split[1][split[1].len() / 2..].iter().collect();
+
+    solver(&top_left) + solver(&bottom_left) + solver(&top_right) + solver(&bottom_right)
 }
 
 fn solver(input: &str) -> usize {
@@ -15,11 +36,7 @@ fn solver(input: &str) -> usize {
 
     let keys_and_start = keys.clone();
 
-    keys.remove(&'@');
-    keys.remove(&'0');
-    keys.remove(&'1');
-    keys.remove(&'2');
-    keys.remove(&'3');
+    keys.remove(&'@').unwrap();
 
     let nexts = |pos: &Point| {
         neighbours((pos.0 as isize, pos.1 as isize))
@@ -58,7 +75,7 @@ fn solver(input: &str) -> usize {
     let mut cache = HashMap::new();
 
     find_shortest_path(
-        vec!['@'],
+        '@',
         keys.keys().cloned().collect(),
         &paths,
         &dependencies,
@@ -101,44 +118,39 @@ fn parse(from: &str) -> (HashSet<Point>, HashMap<char, Point>, HashMap<Point, ch
 }
 
 fn find_shortest_path(
-    currs: Vec<char>,
+    curr: char,
     keys: BTreeSet<char>,
     paths: &HashMap<(char, char), Vec<Point>>,
     dependencies: &HashMap<(char, char), HashSet<char>>,
-    cache: &mut HashMap<Vec<char>, HashMap<BTreeSet<char>, Vec<Point>>>,
+    cache: &mut HashMap<char, HashMap<BTreeSet<char>, Vec<Point>>>,
 ) -> Vec<Point> {
     if keys.is_empty() {
         return vec![];
     }
 
-    if let Some(ret) = cache.get(&currs).and_then(|k| k.get(&keys)) {
+    if let Some(ret) = cache.get(&curr).and_then(|k| k.get(&keys)) {
         return ret.clone();
     }
 
     let mut best: Option<Vec<Point>> = None;
 
-    for (i, curr) in currs.iter().enumerate() {
-        for to in keys.iter() {
-            if dependencies
-                .get(&(*curr, *to))
-                .map(|deps| deps.iter().all(|d| !keys.contains(d)))
-                .unwrap_or(false)
-            {
-                let mut keys = keys.clone();
-                keys.remove(to);
+    for to in keys.iter() {
+        if dependencies
+            .get(&(curr, *to))
+            .unwrap()
+            .iter()
+            .all(|d| !keys.contains(d))
+        {
+            let mut keys = keys.clone();
+            keys.remove(to);
 
-                let mut currs = currs.clone();
-                currs[i] = *to;
+            let subpath = find_shortest_path(*to, keys, paths, dependencies, cache);
+            let path = paths.get(&(curr, *to)).unwrap();
 
-                let subpath = find_shortest_path(currs, keys, paths, dependencies, cache);
-                let path = paths.get(&(*curr, *to)).unwrap();
-
-                if best.as_ref().map(|b| b.len()).unwrap_or(usize::MAX) > subpath.len() + path.len()
-                {
-                    let mut path = path.clone();
-                    path.extend(&subpath);
-                    best = Some(path);
-                }
+            if best.as_ref().map(|b| b.len()).unwrap_or(usize::MAX) > subpath.len() + path.len() {
+                let mut path = path.clone();
+                path.extend(&subpath);
+                best = Some(path);
             }
         }
     }
@@ -146,13 +158,13 @@ fn find_shortest_path(
     let ret = best.unwrap();
 
     if cache
-        .get(&currs)
+        .get(&curr)
         .and_then(|k| k.get(&keys))
         .map(|p| p.len())
         .unwrap_or(usize::MAX)
         > ret.len()
     {
-        cache.entry(currs).or_default().insert(keys, ret.clone());
+        cache.entry(curr).or_default().insert(keys, ret.clone());
     }
 
     ret
