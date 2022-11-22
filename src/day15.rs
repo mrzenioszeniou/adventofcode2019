@@ -115,8 +115,8 @@ fn a_star(
                 to_visit.insert((
                     curr_distance
                         + 1
-                        + (end.0 - neighbour.0).abs() as usize
-                        + (end.1 - neighbour.1).abs() as usize,
+                        + (end.0 - neighbour.0).unsigned_abs()
+                        + (end.1 - neighbour.1).unsigned_abs(),
                     neighbour,
                 ));
             }

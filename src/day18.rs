@@ -39,7 +39,7 @@ fn solver(input: &str) -> usize {
     keys.remove(&'@').unwrap();
 
     let nexts = |pos: &Point| {
-        neighbours((pos.0 as isize, pos.1 as isize))
+        neighbours((pos.0, pos.1))
             .into_iter()
             .map(|(n, _)| (n, 1))
             .filter(|(n, _)| tiles.contains(n))

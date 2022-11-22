@@ -80,7 +80,7 @@ fn parse() -> Node {
 
     let re = Regex::new("([A-Z0-9]+)\\)([A-Z0-9]+)").expect("Could not parse regex");
 
-    for line in content.trim().split_whitespace() {
+    for line in content.split_whitespace() {
         let caps = re.captures(line).unwrap();
 
         let orbitee_name = caps.get(1).unwrap().as_str();

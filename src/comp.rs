@@ -149,7 +149,7 @@ impl IntcodeComputer {
             }
             1 => param,
             2 => {
-                let addr = param + self.rel_base_offset as isize;
+                let addr = param + self.rel_base_offset;
                 self.mem[addr as usize]
             }
             _ => panic!("Illegal parameter mode ({}) encountered", mode),
